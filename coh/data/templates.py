@@ -1,3 +1,7 @@
+"""
+Copied from original repo: https://github.com/lhao499/CoH
+Adapted by Sehyun Choi, 2023
+"""
 summary_template = [
     ("a good sumary is {pos}", "a bad sumary is {neg}"),
     ("the following is a good sumary {pos}", "the following is a bad sumary {neg}"),

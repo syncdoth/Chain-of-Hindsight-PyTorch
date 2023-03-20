@@ -1,3 +1,8 @@
+"""
+Copied from original repo: https://github.com/lhao499/CoH
+Adapted by Sehyun Choi, 2023
+"""
+
 import torch
 from datasets import load_dataset
 from ml_collections import ConfigDict

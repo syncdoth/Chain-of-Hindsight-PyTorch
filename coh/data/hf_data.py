@@ -1,3 +1,7 @@
+"""
+Copied from original repo: https://github.com/lhao499/CoH
+Adapted by Sehyun Choi, 2023
+"""
 import random
 
 import torch
