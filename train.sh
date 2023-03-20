@@ -2,9 +2,9 @@ ids=$1
 
 CUDA_VISIBLE_DEVICES=$ids python -m coh.coh_train \
     --model_name 'EleutherAI/gpt-j-6B' \
-    --cache_dir cache \
-    --project_name CoH \
-    --run_name 'CoH-GPT-J-6B' \
+    --cache_dir $XDG_CACHE_HOME \
+    --wandb_project_name CoH \
+    --wandb_run_name 'CoH-GPT-J-6B' \
     --seq_length 512 \
     --batch_size 512 \
     --hf_weights "" \
@@ -14,6 +14,7 @@ CUDA_VISIBLE_DEVICES=$ids python -m coh.coh_train \
     --eval_steps 10000 \
     --max_steps 1000000 \
     --report_to 'wandb' \
+    --output_dir 'outputs' \
     --logging_steps 100 \
     --save_strategy 'no' \
     --gradient_accumulation_steps 1 \

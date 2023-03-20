@@ -25,6 +25,7 @@ class CoHTrainArgs(TrainingArguments):
     max_steps: int = 1000000
     dataloader_drop_last: bool = False
     report_to: str = 'wandb'
+    output_dir: str = 'outputs'
     logging_steps: int = 100
     save_strategy: str = 'no'
     fp16: bool = field(

@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 
 import wandb
-from transformers import (AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokenizer,
-                          TrainingArguments)
+from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokenizer
 from transformers.hf_argparser import HfArgumentParser
+import torch
 
 from coh.data import CoHDataset, CoHDataArgs
 from coh.trainer import CoHTrainArgs, CoHTrainer, EvalCallback, compute_metrics
@@ -15,17 +15,18 @@ class ExperimentArgs:
     # paths
     cache_dir: str = field(default='cache')
     # wandb logging
-    project_name: str = "CoH"
-    run_name: str = 'CoH-GPT-J-6B'
+    wandb_project_name: str = "CoH"
+    wandb_run_name: str = 'CoH-GPT-J-6B'
 
 
 def main():
+    torch.backends.cuda.matmul.allow_tf32 = True  # allows tf32, only on Ampere GPUs
     parser = HfArgumentParser([ExperimentArgs, CoHDataArgs, CoHTrainArgs])
     args, data_args, coh_train_args = parser.parse_args_into_dataclasses()
 
     # We use wandb to log Hits scores after each epoch. Note, this script does not save model checkpoints.
     wandb.login()
-    wandb.init(project=args.project_name, name=args.run_name)
+    wandb.init(project=args.wandb_project_name, name=args.wandb_run_name)
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name, cache_dir=args.cache_dir)
     if 't5' in args.model_name or 't0' in args.model_name or 'bart' in args.model_name:
@@ -41,16 +42,14 @@ def main():
 
     ################################################################
 
-    training_args = TrainingArguments(**coh_train_args.__dict__)
-
     trainer = CoHTrainer(
         model=model,
         tokenizer=tokenizer,
-        args=training_args,
+        args=coh_train_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         compute_metrics=compute_metrics,
-        callbacks=[EvalCallback(test_dataset, wandb, training_args, tokenizer)],
+        callbacks=[EvalCallback(test_dataset, wandb, coh_train_args, tokenizer)],
     )
     trainer.train()
 
