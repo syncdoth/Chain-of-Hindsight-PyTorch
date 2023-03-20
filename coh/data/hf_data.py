@@ -3,7 +3,8 @@ import random
 import torch
 from datasets import interleave_datasets, load_dataset
 from ml_collections import ConfigDict
-from templates import webgpt_template, webgpt_tie_template, summary_template, dialogue_template
+from coh.data.templates import (dialogue_template, summary_template, webgpt_template,
+                                webgpt_tie_template)
 
 
 class HumanFeedbackDataset(object):
