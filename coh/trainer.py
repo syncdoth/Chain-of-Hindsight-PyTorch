@@ -33,6 +33,7 @@ class CoHTrainArgs(TrainingArguments):
     save_steps: int = 10000
     dataloader_num_workers: int = 0  # TODO
     gradient_accumulation_steps: int = 1
+    log_on_each_node: bool = False
     ############### COH ARGS ##################
     pt_loss_weight: float = field(default=1.0, metadata={"help": "Pretrain Data loss weight."})
     prepend_bos: bool = field(
@@ -56,14 +57,19 @@ class CoHTrainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False):
         # hf data
-        hf_input_ids = inputs['hf_tokens']
         if self.args.prepend_bos:
-            hf_input_ids = prepend_bos_token(model, hf_input_ids)
+            hf_input_ids = prepend_bos_token(model, inputs['hf_tokens'])
+            targets = inputs['hf_tokens']
+            masks = inputs['hf_masks']
+        else:
+            hf_input_ids = inputs['hf_tokens'][:, :-1]
+            targets = inputs['hf_tokens'][:, 1:]
+            masks = inputs['hf_masks'][:, 1:]
         hf_logits = model(input_ids=hf_input_ids).logits
         # [B, T]
-        hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1), inputs['hf_tokens'],
+        hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1), targets,
                                   reduction='none')
-        hf_loss = (hf_loss * inputs['hf_masks']).mean()
+        hf_loss = (hf_loss * masks).mean()
         # pt data
         if self.args.pt_loss_weight > 0:
             pt_input_ids = inputs['pt_tokens']
@@ -86,18 +92,23 @@ class CoHTrainer(Trainer):
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
         model.eval()
         with torch.no_grad():
-            hf_input_ids = inputs['hf_tokens']
             if self.args.prepend_bos:
-                hf_input_ids = prepend_bos_token(model, hf_input_ids)
+                hf_input_ids = prepend_bos_token(model, inputs['hf_tokens'])
+                targets = inputs['hf_tokens']
+                masks = inputs['hf_masks']
+            else:
+                hf_input_ids = inputs['hf_tokens'][:, :-1]
+                targets = inputs['hf_tokens'][:, 1:]
+                masks = inputs['hf_masks'][:, 1:]
             hf_logits = model(input_ids=hf_input_ids).logits
             hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1),
-                                      inputs['hf_tokens'],
+                                      targets,
                                       reduction='none')
-            hf_loss = (hf_loss * inputs['hf_masks']).mean()
+            hf_loss = (hf_loss * masks).mean()
         if prediction_loss_only:
             return hf_loss
         # loss, logit, label
-        return (hf_loss, hf_logits, inputs['hf_tokens'])
+        return (hf_loss, hf_logits, targets)
 
 
 def compute_metrics(eval_preds):
@@ -134,16 +145,20 @@ class EvalCallback(TrainerCallback):
         model = kwargs['model'].eval()
         for inputs in tqdm(self.dataloader, desc='Evaluating on Test Set'):
             with torch.no_grad():
-                hf_input_ids = inputs['hf_tokens']
                 if self.args.prepend_bos:
-                    hf_input_ids = prepend_bos_token(model, hf_input_ids)
-
+                    hf_input_ids = prepend_bos_token(model, inputs['hf_tokens'])
+                    targets = inputs['hf_tokens']
+                    masks = inputs['hf_masks']
+                else:
+                    hf_input_ids = inputs['hf_tokens'][:, :-1]
+                    targets = inputs['hf_tokens'][:, 1:]
+                    masks = inputs['hf_masks'][:, 1:]
                 hf_logits = model(input_ids=hf_input_ids).logits
                 # [B, T]
                 hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1),
-                                          inputs['hf_tokens'],
+                                          targets,
                                           reduction='none')
-                hf_loss = (hf_loss * inputs['hf_masks']).mean()
+                hf_loss = (hf_loss * masks).mean()
                 running_hf_loss += hf_loss.item() * hf_input_ids.shape[0]
                 hf_data_count += hf_input_ids.shape[0]
                 # pt data
