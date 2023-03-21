@@ -29,13 +29,8 @@ class CoHTrainArgs(TrainingArguments):
     report_to: str = 'wandb'
     output_dir: str = 'outputs'
     logging_steps: int = 100
-    save_strategy: str = 'no'
-    fp16: bool = field(
-        default=False,
-        metadata={
-            "help":
-                "gives 0/nan loss at some point during training, seems this is a transformers bug."
-        })
+    save_strategy: str = 'steps'
+    save_steps: int = 10000
     dataloader_num_workers: int = 0  # TODO
     gradient_accumulation_steps: int = 1
     ############### COH ARGS ##################
