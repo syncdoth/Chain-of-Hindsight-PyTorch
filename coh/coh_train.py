@@ -17,6 +17,11 @@ class ExperimentArgs:
     # wandb logging
     wandb_project_name: str = "CoH"
     wandb_run_name: str = 'CoH-GPT-J-6B'
+    # webgpt dataset test size
+    webgpt_dataset_test_size: float = field(
+        default=0.1,
+        metadata={"help": "webgpt_comparisons only have train: need to split."},
+        )
 
 
 def main():
@@ -35,14 +40,16 @@ def main():
     else:
         model = AutoModelForCausalLM.from_pretrained(args.model_name, cache_dir=args.cache_dir)
 
-    coh_config = CoHDataset.get_default_config(data_args.__dict__)
-    train_dataset = CoHDataset(coh_config, tokenizer)
-    eval_cfg = coh_config.copy_and_resolve_references()
-    eval_cfg.update({'split': 'validation'})
-    eval_dataset = CoHDataset(eval_cfg, tokenizer)
-    test_cfg = coh_config.copy_and_resolve_references()
-    test_cfg.update({'split': 'test'})
-    test_dataset = CoHDataset(test_cfg, tokenizer)
+    webgpt_data = CoHDataset.load_webgpt_dataset(test_size=args.webgpt_dataset_test_size)
+    data_args_dict = data_args.__dict__
+    coh_config = CoHDataset.get_default_config(data_args_dict)
+    train_dataset = CoHDataset(coh_config, tokenizer, webgpt_data)
+    # data_args_dict['split'] = 'validation'
+    # eval_cfg = CoHDataset.get_default_config(data_args_dict)
+    # eval_dataset = CoHDataset(eval_cfg, tokenizer)
+    data_args_dict['split'] = 'test'
+    test_cfg = CoHDataset.get_default_config(data_args_dict)
+    test_dataset = CoHDataset(test_cfg, tokenizer, webgpt_data)
 
     ################################################################
 
@@ -51,7 +58,7 @@ def main():
         tokenizer=tokenizer,
         args=coh_train_args,
         train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
+        # eval_dataset=eval_dataset,
         data_collator=CoHDataCollator(),
         compute_metrics=compute_metrics,
         callbacks=[EvalCallback(test_dataset, wandb, coh_train_args, tokenizer)],

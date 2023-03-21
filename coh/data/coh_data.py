@@ -35,13 +35,17 @@ class CoHDataset(IterableDataset):
         config.seq_length = 512
         config.split = 'train'
         config.batch_size = 8
+        config.hf_weights = ""
+
+        if updates is not None:
+            config.update(ConfigDict(updates).copy_and_resolve_references())
         ############## hf ##################
         config.hf = ConfigDict()
         config.hf.seq_length = config.seq_length
         config.hf.split = config.split
         config.hf.batch_size = config.batch_size
         # specific
-        config.hf.weight = ""
+        config.hf.weight = config.hf_weights
         ############## pt ##################
         config.pt = ConfigDict()
         config.pt.seq_length = config.seq_length
@@ -53,18 +57,20 @@ class CoHDataset(IterableDataset):
         config.pt.field = 'text'
         config.pt.streaming = True
 
-        if updates is not None:
-            config.update(ConfigDict(updates).copy_and_resolve_references())
         return config
 
-    def __init__(self, config, tokenizer):
+    @staticmethod
+    def load_webgpt_dataset(self, test_size=0.1):
+        return HumanFeedbackDataset.make_webgpt_test_set(test_size=test_size)
+
+    def __init__(self, config, tokenizer, webgpt_data):
         # TODO: make it possible for num_workers=n
         # https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset
         super().__init__()
         self.config = self.get_default_config(config)
 
         self._tokenizer = tokenizer
-        self._hf_datset = HumanFeedbackDataset(self.config.hf, tokenizer)
+        self._hf_datset = HumanFeedbackDataset(self.config.hf, tokenizer, webgpt_data)
         self._pt_datset = PretrainDataset(self.config.pt, tokenizer)
 
     def __iter__(self):

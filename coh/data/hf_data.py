@@ -27,12 +27,28 @@ class HumanFeedbackDataset(object):
             config.update(ConfigDict(updates).copy_and_resolve_references())
         return config
 
-    def __init__(self, config, tokenizer):
+    @staticmethod
+    def make_webgpt_test_set(self, test_size=0.1):
+        # TODO: do this and cache them so that data doesn't change every time.
+        webgpt_data = load_dataset('openai/webgpt_comparisons', split='train')
+        webgpt_data_split = webgpt_data.train_test_split(test_size=test_size)
+        return webgpt_data_split
+
+
+    def __init__(self, config, tokenizer, webgpt_data):
         self.config = self.get_default_config(config)
         self._tokenizer = tokenizer
-        d1 = load_dataset('openai/webgpt_comparisons', split=self.config.split)
-        d2 = load_dataset('Anthropic/hh-rlhf', split=self.config.split)
-        d3 = load_dataset('openai/summarize_from_feedback', 'comparisons', split=self.config.split)
+        # 1. webgpt data
+        webgpt_split = 'test' if self.config.split == 'validation' else self.config.split
+        d1 = webgpt_data[webgpt_split]
+        # 2. RLHF data
+         # only train, test
+        rlhf_split = 'test' if self.config.split == 'validation' else self.config.split
+        d2 = load_dataset('Anthropic/hh-rlhf', split=rlhf_split)
+        # 3. summarize from feedback data
+        # only train, validation
+        sff_split = 'validation' if self.config.split == 'test' else self.config.split
+        d3 = load_dataset('openai/summarize_from_feedback', 'comparisons', split=sff_split)
         if self.config.weight == "":
             p = [len(d1), len(d2), len(d3)]
         else:

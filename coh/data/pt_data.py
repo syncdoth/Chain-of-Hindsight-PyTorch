@@ -31,6 +31,9 @@ class PretrainDataset(object):
         split = self.config.split if self.config.split != '' else None
 
         self._tokenizer = tokenizer
+
+        # use validation set as test set too
+        split = 'validation' if split == 'test' else split
         self._dataset = load_dataset(self.config.path,
                                      name,
                                      split=split,
