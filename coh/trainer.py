@@ -10,6 +10,8 @@ from tqdm import tqdm
 from transformers import TrainerCallback, TrainingArguments
 from transformers.trainer import Trainer
 
+from coh.utils import prepend_bos_token
+
 
 @dataclass
 class CoHTrainArgs(TrainingArguments):
@@ -36,9 +38,20 @@ class CoHTrainArgs(TrainingArguments):
         })
     dataloader_num_workers: int = 0  # TODO
     gradient_accumulation_steps: int = 1
+    ############### COH ARGS ##################
+    pt_loss_weight: float = field(default=1.0, metadata={"help": "Pretrain Data loss weight."})
+    prepend_bos: bool = field(
+        default=False,
+        metadata={
+            "help": "Whether to prepend bos to input_ids for human feedback dataset."
+                    " This is default to True in original setting, but since we work"
+                    " with chunked LM training, it might be good idea to turn this off."
+        })
 
-    # loss weight
-    pt_loss_weight: float = field(default=1.0)
+    ####################################################################
+    ############################ DO NOT CHANGE!! #######################
+    ####################################################################
+    remove_unused_columns: bool = False  # since CoHDataset uses non-standard columns
 
 
 class CoHTrainer(Trainer):
@@ -48,15 +61,18 @@ class CoHTrainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False):
         # hf data
-        hf_input_ids = model._shift_right(inputs['hf_tokens'])
+        hf_input_ids = inputs['hf_tokens']
+        if self.args.prepend_bos:
+            hf_input_ids = prepend_bos_token(model, hf_input_ids)
         hf_logits = model(input_ids=hf_input_ids).logits
         # [B, T]
-        hf_loss = F.cross_entropy(hf_logits, inputs['hf_tokens'], reduction='none').sum(-1)
+        hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1), inputs['hf_tokens'],
+                                  reduction='none')
         hf_loss = (hf_loss * inputs['hf_masks']).mean()
         # pt data
         if self.args.pt_loss_weight > 0:
-            pt_input_ids = model._shift_right(inputs['pt_tokens'])
-            pt_loss = model(input_ids=pt_input_ids, labels=inputs['pt_tokens']).loss
+            pt_input_ids = inputs['pt_tokens']
+            pt_loss = model(input_ids=pt_input_ids, labels=pt_input_ids).loss
         else:
             pt_loss = 0
 
@@ -75,9 +91,13 @@ class CoHTrainer(Trainer):
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
         model.eval()
         with torch.no_grad():
-            hf_input_ids = model._shift_right(inputs['hf_tokens'])
+            hf_input_ids = inputs['hf_tokens']
+            if self.args.prepend_bos:
+                hf_input_ids = prepend_bos_token(model, hf_input_ids)
             hf_logits = model(input_ids=hf_input_ids).logits
-            hf_loss = F.cross_entropy(hf_logits, inputs['hf_tokens'], reduction='none').sum(-1)
+            hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1),
+                                      inputs['hf_tokens'],
+                                      reduction='none')
             hf_loss = (hf_loss * inputs['hf_masks']).mean()
         if prediction_loss_only:
             return hf_loss
@@ -119,17 +139,22 @@ class EvalCallback(TrainerCallback):
         model = kwargs['model'].eval()
         for inputs in tqdm(self.dataloader, desc='Evaluating on Test Set'):
             with torch.no_grad():
-                hf_input_ids = model._shift_right(inputs['hf_tokens'])
+                hf_input_ids = inputs['hf_tokens']
+                if self.args.prepend_bos:
+                    hf_input_ids = prepend_bos_token(model, hf_input_ids)
+
                 hf_logits = model(input_ids=hf_input_ids).logits
                 # [B, T]
-                hf_loss = F.cross_entropy(hf_logits, inputs['hf_tokens'], reduction='none').sum(-1)
+                hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1),
+                                          inputs['hf_tokens'],
+                                          reduction='none')
                 hf_loss = (hf_loss * inputs['hf_masks']).mean()
                 running_hf_loss += hf_loss.item() * hf_input_ids.shape[0]
                 hf_data_count += hf_input_ids.shape[0]
                 # pt data
                 if self.args.pt_loss_weight > 0:
-                    pt_input_ids = model._shift_right(inputs['pt_tokens'])
-                    pt_loss = model(input_ids=pt_input_ids, labels=inputs['pt_tokens']).loss
+                    pt_input_ids = inputs['pt_tokens']
+                    pt_loss = model(input_ids=pt_input_ids, labels=pt_input_ids).loss
                     running_pt_loss += pt_loss.item() * pt_input_ids.shape[0]
                     pt_data_count += pt_input_ids.shape[0]
                 else:
