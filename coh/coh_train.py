@@ -12,6 +12,8 @@ from coh.trainer import CoHTrainArgs, CoHTrainer, EvalCallback, compute_metrics
 @dataclass
 class ExperimentArgs:
     model_name: str = field(default='EleutherAI/gpt-j-6B')
+    tokenizer_name: str = field(default=None,
+                                metadata={"help": "Will default to --model_name."})
     # paths
     cache_dir: str = field(default='cache')
     # wandb logging
@@ -33,7 +35,8 @@ def main():
     wandb.login()
     wandb.init(project=args.wandb_project_name, name=args.wandb_run_name)
 
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name, cache_dir=args.cache_dir)
+    tokenizer_name = args.tokenizer_name if args.tokenizer_name else args.model_name
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir=args.cache_dir)
     if 't5' in args.model_name or 't0' in args.model_name or 'bart' in args.model_name:
         raise NotImplementedError('encoder-decoder models are not implemented yet.')
         model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name, cache_dir=args.cache_dir)
