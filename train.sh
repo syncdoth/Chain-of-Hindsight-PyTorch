@@ -16,7 +16,8 @@ CUDA_VISIBLE_DEVICES=$ids python -m coh.coh_train \
     --report_to 'wandb' \
     --output_dir 'outputs' \
     --logging_steps 100 \
-    --save_strategy 'no' \
+    --save_strategy 'steps' \
+    --save_steps 10000 \
     --gradient_accumulation_steps 1 \
     --pt_loss_weight 1.0
 
