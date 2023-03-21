@@ -5,7 +5,7 @@ from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokeni
 from transformers.hf_argparser import HfArgumentParser
 import torch
 
-from coh.data import CoHDataset, CoHDataArgs
+from coh.data import CoHDataset, CoHDataArgs, CoHDataCollator
 from coh.trainer import CoHTrainArgs, CoHTrainer, EvalCallback, compute_metrics
 
 
@@ -37,8 +37,12 @@ def main():
 
     coh_config = CoHDataset.get_default_config(data_args.__dict__)
     train_dataset = CoHDataset(coh_config, tokenizer)
-    eval_dataset = CoHDataset(coh_config, tokenizer)
-    test_dataset = CoHDataset(coh_config, tokenizer)
+    eval_cfg = coh_config.copy_and_resolve_references()
+    eval_cfg.update({'split': 'validation'})
+    eval_dataset = CoHDataset(eval_cfg, tokenizer)
+    test_cfg = coh_config.copy_and_resolve_references()
+    test_cfg.update({'split': 'test'})
+    test_dataset = CoHDataset(test_cfg, tokenizer)
 
     ################################################################
 
@@ -48,6 +52,7 @@ def main():
         args=coh_train_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
+        data_collator=CoHDataCollator(),
         compute_metrics=compute_metrics,
         callbacks=[EvalCallback(test_dataset, wandb, coh_train_args, tokenizer)],
     )

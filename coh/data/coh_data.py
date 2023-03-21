@@ -2,9 +2,12 @@
 This combines hf_data and pt_data.
 """
 from dataclasses import dataclass, field
+from typing import Any, Dict, List
 
+import torch
 from ml_collections import ConfigDict
 from torch.utils.data import IterableDataset
+from transformers import DefaultDataCollator
 
 from coh.data.hf_data import HumanFeedbackDataset
 from coh.data.pt_data import PretrainDataset
@@ -98,3 +101,17 @@ class CoHDataset(IterableDataset):
     @property
     def vocab_size(self):
         return len(self._tokenizer)
+
+class CoHDataCollator(DefaultDataCollator):
+    def __call__(self, features: List[Dict[str, Any]], return_tensors=None) -> Dict[str, Any]:
+        if len(features) == 1:
+            # in most cases, this should be true
+            return features[0]
+
+        collated = {k: [] for k in features[0].keys()}
+        for x in features:
+            for k, v in x.items():
+                collated[k].append(v)
+
+        collated = {k: torch.cat(v, dim=0) for k, v in collated.items()}
+        return collated
