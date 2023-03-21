@@ -33,3 +33,23 @@ used in the following files:
 - `coh.coh_train.ExperimentArgs`
 - `coh.data.coh_data.CoHDataArgs`
 - `coh.trainer.CoHTrainArgs`  (this inherits from `transformers.TrainingArguments`)
+
+### Train LLaMA
+
+Train script for LLaMA is also provided. The baseline script is:
+
+```bash
+sh llama_train.sh 0,1,2,3 ${LLAMA_PATH}
+```
+
+To use this script, you will need to have already downloaded LLaMa weights and
+converted it to pytorch weights using the convert script at huggingface transformers repo.
+
+- Relevant [PR](https://github.com/huggingface/transformers/pull/21955)
+
+```
+python src/transformers/models/llama/convert_llama_weights_to_hf.py \
+    --input_dir /path/to/downloaded/llama/weights \
+    --model_size 7B \
+    --output_dir /output/path
+```
