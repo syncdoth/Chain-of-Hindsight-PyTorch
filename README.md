@@ -53,3 +53,12 @@ python src/transformers/models/llama/convert_llama_weights_to_hf.py \
     --model_size 7B \
     --output_dir /output/path
 ```
+
+## Notice
+
+This repo diverges from the original repo's implementation in a few ways:
+1. The original repo does not have evaluation step.
+2. Here, no `bos_token` is prepended to the `input_ids`. This is because since the
+   batching logic is chunk-wise, each sentence in a batch is not really a sentence.
+3. No `weight_decay_mask` is used.
+4. Forgetful Causal Masking is not applied.
