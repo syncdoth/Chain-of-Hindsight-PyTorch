@@ -32,8 +32,15 @@ def main():
     args, data_args, coh_train_args = parser.parse_args_into_dataclasses()
 
     # We use wandb to log Hits scores after each epoch. Note, this script does not save model checkpoints.
-    wandb.login()
-    wandb.init(project=args.wandb_project_name, name=args.wandb_run_name)
+    if coh_train_args.local_rank == 0:
+        wandb.init(project=args.wandb_project_name,
+                   name=args.wandb_run_name,
+                   config={
+                       "experiment": args.__dict__,
+                       "data": data_args.__dict__,
+                       "train": coh_train_args.__dict__,
+                       },
+                   )
 
     tokenizer_name = args.tokenizer_name if args.tokenizer_name else args.model_name
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir=args.cache_dir)
@@ -67,6 +74,7 @@ def main():
         callbacks=[EvalCallback(test_dataset, wandb, coh_train_args, tokenizer)],
     )
     trainer.train()
+    wandb.finish()
 
 
 if __name__ == "__main__":
