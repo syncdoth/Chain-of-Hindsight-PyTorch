@@ -4,8 +4,6 @@ This is an unofficial implementation of [Chain of Hindsight](https://arxiv.org/a
 using PyTorch and Huggingface Trainer. The data loading script is directly taken from the original
 [repo](https://github.com/lhao499/CoH), and only the training part is re-written using PyTorch.
 
-**The code is not yet tested, so run with caution!!**
-
 ## Installation
 
 - For pip,
@@ -22,9 +20,15 @@ conda create -f env.yml
 
 ## Train
 
-A shell script for training can be found in `train.sh`. To customize command line
-arguments, take a look at the arguments dataclasses used in the following
-files:
+A shell script for training can be found in `train.sh`. It takes gpu device ids
+as inputs and passes it to `CUDA_VISIBLE_DEVICES` environment variable.
+
+```bash
+sh train.sh 0,1,2,3
+```
+
+To customize command line arguments, take a look at the arguments dataclasses
+used in the following files:
 
 - `coh.coh_train.ExperimentArgs`
 - `coh.data.coh_data.CoHDataArgs`
