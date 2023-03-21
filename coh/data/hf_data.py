@@ -28,7 +28,7 @@ class HumanFeedbackDataset(object):
         return config
 
     @staticmethod
-    def make_webgpt_test_set(self, test_size=0.1):
+    def make_webgpt_test_set(test_size=0.1):
         # TODO: do this and cache them so that data doesn't change every time.
         webgpt_data = load_dataset('openai/webgpt_comparisons', split='train')
         webgpt_data_split = webgpt_data.train_test_split(test_size=test_size)

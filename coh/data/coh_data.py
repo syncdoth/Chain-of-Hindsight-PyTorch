@@ -60,7 +60,7 @@ class CoHDataset(IterableDataset):
         return config
 
     @staticmethod
-    def load_webgpt_dataset(self, test_size=0.1):
+    def load_webgpt_dataset(test_size=0.1):
         return HumanFeedbackDataset.make_webgpt_test_set(test_size=test_size)
 
     def __init__(self, config, tokenizer, webgpt_data):
