@@ -15,7 +15,7 @@ pip install -r requirements.txt
 - For conda,
 
 ```bash
-conda create -f env.yml
+conda env create -f env.yml
 ```
 
 ## Train

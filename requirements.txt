@@ -5,3 +5,4 @@ tqdm
 sentencepiece
 wandb
 ml_collections
+deepspeed
