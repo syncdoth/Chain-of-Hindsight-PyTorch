@@ -1,8 +1,9 @@
 ids=$1
 LLAMA_PATH=$2
 
-CUDA_VISIBLE_DEVICES=$ids deepspeed --module coh.coh_train \
-    --deepspeed ds_config/auto_zero3.json \
+CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node=4 --master_port=9808 -m coh.coh_train \
+    --fsdp "full_shard auto_wrap" \
+    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer' \
     --model_name $LLAMA_PATH/llama-7b \
     --tokenizer_name $LLAMA_PATH/tokenizer \
     --cache_dir $XDG_CACHE_HOME \
@@ -24,5 +25,5 @@ CUDA_VISIBLE_DEVICES=$ids deepspeed --module coh.coh_train \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 8 \
     --gradient_checkpointing True \
+    --pt_loss_weight 1.0 \
     --bf16 True --tf32 True
-    # --pt_loss_weight 1.0

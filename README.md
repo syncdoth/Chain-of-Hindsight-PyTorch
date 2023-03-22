@@ -68,8 +68,7 @@ export CUDA_HOME=/path/to/conda/envs/coh
 Example deepspeed config files can be found in `ds_config`. They are directly
 taken from huggingface's deepspeed integration tutorial.
 
-By default, `llama_train.sh` uses deepspeed, while `train.sh` does not. You can
-customize them to suit your needs.
+By default, `train.sh` uses deepspeed. `llama_train.sh` uses FSDP instead.
 
 ## Notice
 
