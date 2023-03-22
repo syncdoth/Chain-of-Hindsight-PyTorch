@@ -1,16 +1,15 @@
 ids=$1
 LLAMA_PATH=$2
 
-CUDA_VISIBLE_DEVICES=$ids python -m coh.coh_train \
+CUDA_VISIBLE_DEVICES=$ids deepspeed --module coh.coh_train \
+    --deepspeed ds_config/auto_zero3.json \
     --model_name $LLAMA_PATH/llama-7b \
     --tokenizer_name $LLAMA_PATH/tokenizer \
     --cache_dir $XDG_CACHE_HOME \
     --wandb_project_name CoH \
-    --wandb_run_name 'CoH-GPT-J-6B' \
-    --seq_length 512 \
-    --batch_size 512 \
+    --wandb_run_name 'CoH-LLaMA-7B' \
     --hf_weights "" \
-    --learning_rate 5e-4 \
+    --learning_rate 2e-5 \
     --warmup_steps 10000 \
     --weight_decay 0 \
     --eval_steps 10000 \
@@ -20,7 +19,10 @@ CUDA_VISIBLE_DEVICES=$ids python -m coh.coh_train \
     --logging_steps 100 \
     --save_strategy 'steps' \
     --save_steps 10000 \
-    --gradient_accumulation_steps 1 \
-    --pt_loss_weight 1.0
-
-    # --fp16 --bf16  # mixed precisions; use them as appropriate
+    --seq_length 512 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 8 \
+    --gradient_checkpointing True \
+    --bf16 True --tf32 True
+    # --pt_loss_weight 1.0

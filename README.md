@@ -53,6 +53,23 @@ python src/transformers/models/llama/convert_llama_weights_to_hf.py \
     --model_size 7B \
     --output_dir /output/path
 ```
+## DeepSpeed
+
+To use DeepSpeed, you need nvcc with the correct version installed. Conda provides
+`cuda-nvcc` package, which is also included in `env.yml`. However, to use this,
+you need to set the `CUDA_HOME` environment variable to point to the conda environment
+(this is required for deepspeed JIT c++ compiler to point to the conda installed
+`nvcc` not the system-wide one). after creating the environment and activating it, set
+
+```bash
+export CUDA_HOME=/path/to/conda/envs/coh
+```
+
+Example deepspeed config files can be found in `ds_config`. They are directly
+taken from huggingface's deepspeed integration tutorial.
+
+By default, `llama_train.sh` uses deepspeed, while `train.sh` does not. You can
+customize them to suit your needs.
 
 ## Notice
 
