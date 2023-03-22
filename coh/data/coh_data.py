@@ -19,7 +19,6 @@ class CoHDataArgs:
     seq_length: int = field(
         default=32,
         metadata={"help": "only use the first 32 tokens of documents (including title)"})
-    batch_size: int = field(default=512)
     hf_weights: str = field(
         default="",
         metadata={
@@ -34,7 +33,7 @@ class CoHDataset(IterableDataset):
         config = ConfigDict()
         config.seq_length = 512
         config.split = 'train'
-        config.batch_size = 8
+        config.batch_size = 1  # fixed: control this outside
         config.hf_weights = ""
 
         if updates is not None:

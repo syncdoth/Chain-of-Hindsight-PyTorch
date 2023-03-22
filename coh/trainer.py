@@ -19,7 +19,6 @@ class CoHTrainArgs(TrainingArguments):
     learning_rate: float = 5e-4
     warmup_steps: int = 10000
     weight_decay: float = field(default=0, metadata={"help": "typically, set this to 0.01"})
-    # NOTE: batch size is 1 because it is already batched in the CoHDataset
     per_device_train_batch_size: int = 1
     per_device_eval_batch_size: int = 1
     evaluation_strategy: str = 'steps'

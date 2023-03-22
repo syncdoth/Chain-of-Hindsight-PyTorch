@@ -20,7 +20,7 @@ class HumanFeedbackDataset(object):
         config = ConfigDict()
         config.seq_length = 512
         config.split = 'train'
-        config.batch_size = 8
+        config.batch_size = 1
         config.weight = ""
 
         if updates is not None:

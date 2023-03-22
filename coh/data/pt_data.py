@@ -19,7 +19,7 @@ class PretrainDataset(object):
         config.split = 'train'
         config.field = 'text'
         config.streaming = True
-        config.batch_size = 8
+        config.batch_size = 1
 
         if updates is not None:
             config.update(ConfigDict(updates).copy_and_resolve_references())
