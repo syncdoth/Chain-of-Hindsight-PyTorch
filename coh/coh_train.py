@@ -24,6 +24,11 @@ class ExperimentArgs:
         default=0.1,
         metadata={"help": "webgpt_comparisons only have train: need to split."},
         )
+    # peft
+    use_lora: bool = field(default=True, metadata={"help": "use lora with huggingface peft. You must install loralib and peft."})
+    lora_r: int = 8
+    lora_alpha: int = 32
+    lora_dropout: float = 0.1
 
 
 def main():
@@ -50,6 +55,20 @@ def main():
     else:
         model = AutoModelForCausalLM.from_pretrained(args.model_name, cache_dir=args.cache_dir)
 
+    if args.use_lora:
+        from peft import get_peft_model, LoraConfig, TaskType
+        peft_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            inference_mode=False,
+            r=args.lora_r,
+            lora_alpha=args.lora_alpha,
+            lora_dropout=args.lora_dropout,
+        )
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
+        model.config.use_cache = False  # silence the warnings. Please re-enable for inference!
+        coh_train_args.gradient_checkpointing = False  # incompatible with lora
+
     webgpt_data = CoHDataset.load_webgpt_dataset(test_size=args.webgpt_dataset_test_size)
     data_args_dict = data_args.__dict__
     coh_config = CoHDataset.get_default_config(data_args_dict)
@@ -74,6 +93,7 @@ def main():
         callbacks=[EvalCallback(test_dataset, wandb, coh_train_args, tokenizer)],
     )
     trainer.train()
+    model.save_pretrained("llama-7b-coh-lora")
     wandb.finish()
 
 

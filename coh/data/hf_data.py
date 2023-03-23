@@ -64,6 +64,8 @@ class HumanFeedbackDataset(object):
             masks = []
             for sample in self._dataset:
                 processed = self.format_to_sentence(sample)
+                # tokens.append(self.tokenizer.bos_token_id)
+                # masks.append(1)
                 tokens.extend(processed['input_tokens'])
                 masks.extend(processed['loss_masks'])
                 tokens.append(self.tokenizer.eos_token_id)

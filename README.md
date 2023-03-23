@@ -70,6 +70,11 @@ taken from huggingface's deepspeed integration tutorial.
 
 By default, `train.sh` uses deepspeed. `llama_train.sh` uses FSDP instead.
 
+## PEFT
+
+To further enhance efficiency of training, PEFT lora is applied. Pass `--use_lora`
+into training arguments.
+
 ## Notice
 
 This repo diverges from the original repo's implementation in a few ways:

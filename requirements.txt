@@ -6,3 +6,6 @@ sentencepiece
 wandb
 ml_collections
 deepspeed
+bitsandbytes
+loralib
+git+https://github.com/huggingface/peft.git
