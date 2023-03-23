@@ -9,13 +9,13 @@ using PyTorch and Huggingface Trainer. The data loading script is directly taken
 - For pip,
 
 ```bash
-pip install -r requirements.txt
+pip install -r environment/requirements.txt
 ```
 
 - For conda,
 
 ```bash
-conda env create -f env.yml
+conda env create -f environment/env.yml
 ```
 
 ## Train
