@@ -43,6 +43,8 @@ def main():
         device_map = None
     if int(os.environ.get("WORLD_SIZE", 1)) != 1:
         device_map = {"": coh_train_args.local_rank}
+        if args.train_8bit:
+            coh_train_args.ddp_find_unused_parameters = False  # integral for train_8bit
     else:
         device_map = 'auto'
 
