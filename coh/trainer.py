@@ -107,7 +107,7 @@ class EvalCallback(TrainerCallback):
         self.test_dataset = test_dataset
         self.dataloader = DataLoader(
             test_dataset,
-            batch_size=1,  # it is already batched in CoHDataset!
+            batch_size=args.eval_batch_size,
             shuffle=False,
             drop_last=False,
             num_workers=0,  # TODO
