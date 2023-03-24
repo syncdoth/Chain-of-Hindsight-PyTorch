@@ -20,7 +20,7 @@ TORCH_DISTRIBUTED_DEBUG=DETAIL WORLD_SIZE=2 CUDA_VISIBLE_DEVICES=$ids torchrun -
     --save_steps 1000 \
     --save_total_limit 3 \
     --load_best_model_at_end False \
-    --pt_loss_weight 0 \
+    --pt_loss_weight 0.75 \
     --seq_length 256 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
