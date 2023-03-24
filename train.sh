@@ -1,26 +1,26 @@
 ids=$1
 
-CUDA_VISIBLE_DEVICES=$ids deepspeed --module coh.coh_train \
-    --deepspeed ds_config/auto_zero3.json \
+WORLD_SIZE=2 CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node 2 --master_port 9808 \
+    -m coh.coh_train \
     --model_name 'EleutherAI/gpt-j-6B' \
-    --cache_dir $XDG_CACHE_HOME \
     --wandb_project_name CoH \
     --wandb_run_name 'CoH-GPT-J-6B' \
     --hf_weights "" \
     --learning_rate 2e-5 \
-    --warmup_steps 10000 \
+    --warmup_steps 1000 \
     --weight_decay 0 \
-    --eval_steps 10000 \
-    --max_steps 1000000 \
+    --eval_steps 1000 \
+    --max_steps 100000 \
     --report_to 'wandb' \
     --output_dir 'outputs' \
-    --logging_steps 100 \
+    --logging_steps 10 \
     --save_strategy 'steps' \
-    --save_steps 10000 \
+    --save_steps 1000 \
+    --save_total_limit 3 \
+    --load_best_model_at_end False \
+    --pt_loss_weight 0.75 \
     --seq_length 512 \
     --per_device_train_batch_size 4 \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 16 \
-    --gradient_checkpointing True \
-    --pt_loss_weight 1.0 \
-    --bf16 True --tf32 True
+    --use_lora --fp16 --train_8bit

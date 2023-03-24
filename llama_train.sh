@@ -1,7 +1,7 @@
 ids=$1
 LLAMA_PATH=$2
 
-TORCH_DISTRIBUTED_DEBUG=DETAIL WORLD_SIZE=2 CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node 2 --master_port 9808 \
+WORLD_SIZE=2 CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node 2 --master_port 9808 \
     -m coh.coh_train \
     --model_name $LLAMA_PATH/llama-7b \
     --tokenizer_name $LLAMA_PATH/tokenizer \
