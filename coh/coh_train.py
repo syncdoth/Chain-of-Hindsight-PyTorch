@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import os
 
 import wandb
 from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokenizer
@@ -12,10 +13,7 @@ from coh.trainer import CoHTrainArgs, CoHTrainer, EvalCallback, compute_metrics
 @dataclass
 class ExperimentArgs:
     model_name: str = field(default='EleutherAI/gpt-j-6B')
-    tokenizer_name: str = field(default=None,
-                                metadata={"help": "Will default to --model_name."})
-    # paths
-    cache_dir: str = field(default='cache')
+    tokenizer_name: str = field(default=None, metadata={"help": "Will default to --model_name."})
     # wandb logging
     wandb_project_name: str = "CoH"
     wandb_run_name: str = 'CoH-GPT-J-6B'
@@ -23,12 +21,15 @@ class ExperimentArgs:
     webgpt_dataset_test_size: float = field(
         default=0.1,
         metadata={"help": "webgpt_comparisons only have train: need to split."},
-        )
+    )
     # peft
-    use_lora: bool = field(default=True, metadata={"help": "use lora with huggingface peft. You must install loralib and peft."})
+    use_lora: bool = field(
+        default=True,
+        metadata={"help": "use lora with huggingface peft. You must install loralib and peft."})
     lora_r: int = 8
     lora_alpha: int = 32
     lora_dropout: float = 0.1
+    train_8bit: bool = True
 
 
 def main():
@@ -36,41 +37,51 @@ def main():
     parser = HfArgumentParser([ExperimentArgs, CoHDataArgs, CoHTrainArgs])
     args, data_args, coh_train_args = parser.parse_args_into_dataclasses()
 
-    # We use wandb to log Hits scores after each epoch. Note, this script does not save model checkpoints.
+    if coh_train_args.deepspeed and args.train_8bit:
+        raise ValueError("--train_8bit is not compatible with deepspeed.")
+    if not args.train_8bit:
+        device_map = None
+    if int(os.environ.get("WORLD_SIZE", 1)) != 1:
+        device_map = {"": coh_train_args.local_rank}
+    else:
+        device_map = 'auto'
+
     if coh_train_args.local_rank == 0:
-        wandb.init(project=args.wandb_project_name,
-                   name=args.wandb_run_name,
-                   config={
-                       "experiment": args.__dict__,
-                       "data": data_args.__dict__,
-                       "train": coh_train_args.__dict__,
-                       },
-                   )
+        wandb.init(
+            project=args.wandb_project_name,
+            name=args.wandb_run_name,
+            config={
+                "experiment": args.__dict__,
+                "data": data_args.__dict__,
+                "train": coh_train_args.__dict__,
+            },
+        )
 
     tokenizer_name = args.tokenizer_name if args.tokenizer_name else args.model_name
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir=args.cache_dir)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, add_eos_token=True)
     if 't5' in args.model_name or 't0' in args.model_name or 'bart' in args.model_name:
         raise NotImplementedError('encoder-decoder models are not implemented yet.')
-        model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name, 
-                                                      cache_dir=args.cache_dir,
-                                                      load_in_8bit=True,
-                                                      device_map='auto')
+        model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name,
+                                                      load_in_8bit=args.train_8bit,
+                                                      device_map=device_map)
     else:
         model = AutoModelForCausalLM.from_pretrained(args.model_name,
-                                                     cache_dir=args.cache_dir,
-                                                     load_in_8bit=True,
-                                                     device_map='auto')
+                                                     load_in_8bit=args.train_8bit,
+                                                     device_map=device_map)
 
     if args.use_lora:
-        from peft import get_peft_model, LoraConfig, TaskType, prepare_model_for_int8_training
+        from peft import (get_peft_model, get_peft_model_state_dict, LoraConfig, TaskType,
+                          prepare_model_for_int8_training)
         peft_config = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
             inference_mode=False,
             r=args.lora_r,
             lora_alpha=args.lora_alpha,
             lora_dropout=args.lora_dropout,
+            bias="none",
         )
-        model = prepare_model_for_int8_training(model)
+        if args.train_8bit:
+            model = prepare_model_for_int8_training(model)
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
         model.config.use_cache = False  # silence the warnings. Please re-enable for inference!
@@ -99,6 +110,12 @@ def main():
         compute_metrics=compute_metrics,
         callbacks=[EvalCallback(test_dataset, wandb, coh_train_args, tokenizer)],
     )
+    if args.use_lora:
+        old_state_dict = model.state_dict
+        model.state_dict = (
+            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())).__get__(
+                model, type(model))
+
     trainer.train()
     model.save_pretrained("llama-7b-coh-lora")
     wandb.finish()

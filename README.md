@@ -75,6 +75,14 @@ By default, `train.sh` uses deepspeed. `llama_train.sh` uses FSDP instead.
 To further enhance efficiency of training, PEFT lora is applied. Pass `--use_lora`
 into training arguments.
 
+### 8-bit training
+
+You can also use 8-bit training!
+
+- This is compatible with PEFT.
+- This is **NOT** compatible with DeepSpeed.
+    - Need to use `torchrun` launcher instead of `deepspeed` launcher.
+
 ## Notice
 
 This repo diverges from the original repo's implementation in a few ways:
