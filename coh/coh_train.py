@@ -51,12 +51,18 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir=args.cache_dir)
     if 't5' in args.model_name or 't0' in args.model_name or 'bart' in args.model_name:
         raise NotImplementedError('encoder-decoder models are not implemented yet.')
-        model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name, cache_dir=args.cache_dir)
+        model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name, 
+                                                      cache_dir=args.cache_dir,
+                                                      load_in_8bit=True,
+                                                      device_map='auto')
     else:
-        model = AutoModelForCausalLM.from_pretrained(args.model_name, cache_dir=args.cache_dir)
+        model = AutoModelForCausalLM.from_pretrained(args.model_name,
+                                                     cache_dir=args.cache_dir,
+                                                     load_in_8bit=True,
+                                                     device_map='auto')
 
     if args.use_lora:
-        from peft import get_peft_model, LoraConfig, TaskType
+        from peft import get_peft_model, LoraConfig, TaskType, prepare_model_for_int8_training
         peft_config = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
             inference_mode=False,
@@ -64,6 +70,7 @@ def main():
             lora_alpha=args.lora_alpha,
             lora_dropout=args.lora_dropout,
         )
+        model = prepare_model_for_int8_training(model)
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
         model.config.use_cache = False  # silence the warnings. Please re-enable for inference!
