@@ -75,8 +75,8 @@ class CoHDataset(IterableDataset):
     def __iter__(self):
         for hf, pt in zip(self._hf_datset, self._pt_datset):
             yield {
-                'hf_tokens': hf['tokens'],
-                'hf_masks': hf['masks'],
+                'input_ids': hf['tokens'],
+                'loss_mask': hf['masks'],
                 'pt_tokens': pt['tokens'],
             }
 

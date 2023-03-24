@@ -10,8 +10,6 @@ from tqdm import tqdm
 from transformers import TrainerCallback, TrainingArguments
 from transformers.trainer import Trainer
 
-from coh.utils import prepend_bos_token
-
 
 @dataclass
 class CoHTrainArgs(TrainingArguments):
@@ -35,13 +33,6 @@ class CoHTrainArgs(TrainingArguments):
     log_on_each_node: bool = False
     ############### COH ARGS ##################
     pt_loss_weight: float = field(default=1.0, metadata={"help": "Pretrain Data loss weight."})
-    prepend_bos: bool = field(
-        default=False,
-        metadata={
-            "help": "Whether to prepend bos to input_ids for human feedback dataset."
-                    " This is default to True in original setting, but since we work"
-                    " with chunked LM training, it might be good idea to turn this off."
-        })
 
     ####################################################################
     ############################ DO NOT CHANGE!! #######################
@@ -56,18 +47,12 @@ class CoHTrainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False):
         # hf data
-        if self.args.prepend_bos:
-            hf_input_ids = prepend_bos_token(model, inputs['hf_tokens'])
-            targets = inputs['hf_tokens']
-            masks = inputs['hf_masks']
-        else:
-            hf_input_ids = inputs['hf_tokens'][:, :-1]
-            targets = inputs['hf_tokens'][:, 1:]
-            masks = inputs['hf_masks'][:, 1:]
+        hf_input_ids = inputs['input_ids'][:, :-1]
+        targets = inputs['input_ids'][:, 1:]
+        masks = inputs['loss_mask'][:, 1:]
         hf_logits = model(input_ids=hf_input_ids).logits
         # [B, T]
-        hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1), targets,
-                                  reduction='none')
+        hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1), targets, reduction='none')
         hf_loss = (hf_loss * masks).mean()
         # pt data
         if self.args.pt_loss_weight > 0:
@@ -91,18 +76,11 @@ class CoHTrainer(Trainer):
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
         model.eval()
         with torch.no_grad():
-            if self.args.prepend_bos:
-                hf_input_ids = prepend_bos_token(model, inputs['hf_tokens'])
-                targets = inputs['hf_tokens']
-                masks = inputs['hf_masks']
-            else:
-                hf_input_ids = inputs['hf_tokens'][:, :-1]
-                targets = inputs['hf_tokens'][:, 1:]
-                masks = inputs['hf_masks'][:, 1:]
+            hf_input_ids = inputs['input_ids'][:, :-1]
+            targets = inputs['input_ids'][:, 1:]
+            masks = inputs['loss_mask'][:, 1:]
             hf_logits = model(input_ids=hf_input_ids).logits
-            hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1),
-                                      targets,
-                                      reduction='none')
+            hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1), targets, reduction='none')
             hf_loss = (hf_loss * masks).mean()
         if prediction_loss_only:
             return hf_loss
@@ -115,7 +93,7 @@ def compute_metrics(eval_preds):
     pred = np.argmax(eval_preds.predictions, axis=-1)
     num_correct = (pred == eval_preds.label_ids).sum()
     num_predict = pred.size
-    # TODO: maybe also use inputs['hf_masks'] here too?
+    # TODO: maybe also use inputs['loss_mask'] here too?
 
     return {'accuracy': num_correct / num_predict}
 
@@ -144,19 +122,12 @@ class EvalCallback(TrainerCallback):
         model = kwargs['model'].eval()
         for inputs in tqdm(self.dataloader, desc='Evaluating on Test Set'):
             with torch.no_grad():
-                if self.args.prepend_bos:
-                    hf_input_ids = prepend_bos_token(model, inputs['hf_tokens'])
-                    targets = inputs['hf_tokens']
-                    masks = inputs['hf_masks']
-                else:
-                    hf_input_ids = inputs['hf_tokens'][:, :-1]
-                    targets = inputs['hf_tokens'][:, 1:]
-                    masks = inputs['hf_masks'][:, 1:]
+                hf_input_ids = inputs['input_ids'][:, :-1]
+                targets = inputs['input_ids'][:, 1:]
+                masks = inputs['loss_mask'][:, 1:]
                 hf_logits = model(input_ids=hf_input_ids).logits
                 # [B, T]
-                hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1),
-                                          targets,
-                                          reduction='none')
+                hf_loss = F.cross_entropy(hf_logits.permute(0, 2, 1), targets, reduction='none')
                 hf_loss = (hf_loss * masks).mean()
                 running_hf_loss += hf_loss.item() * hf_input_ids.shape[0]
                 hf_data_count += hf_input_ids.shape[0]
