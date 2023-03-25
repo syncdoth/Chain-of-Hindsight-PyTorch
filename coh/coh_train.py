@@ -93,9 +93,13 @@ def main():
     data_args_dict = data_args.__dict__
     coh_config = CoHDataset.get_default_config(data_args_dict)
     train_dataset = CoHDataset(coh_config, tokenizer, webgpt_data)
-    # data_args_dict['split'] = 'validation'
-    # eval_cfg = CoHDataset.get_default_config(data_args_dict)
-    # eval_dataset = CoHDataset(eval_cfg, tokenizer)
+    if coh_train_args.evaluation_strategy != 'no':
+        data_args_dict['split'] = 'validation'
+        eval_cfg = CoHDataset.get_default_config(data_args_dict)
+        eval_dataset = CoHDataset(eval_cfg, tokenizer)
+    else:
+        eval_dataset = None
+        coh_train_args.eval_steps = None
     data_args_dict['split'] = 'test'
     test_cfg = CoHDataset.get_default_config(data_args_dict)
     test_dataset = CoHDataset(test_cfg, tokenizer, webgpt_data)
@@ -107,7 +111,7 @@ def main():
         tokenizer=tokenizer,
         args=coh_train_args,
         train_dataset=train_dataset,
-        # eval_dataset=eval_dataset,
+        eval_dataset=eval_dataset,
         data_collator=CoHDataCollator(),
         compute_metrics=compute_metrics,
         callbacks=[EvalCallback(test_dataset, wandb, coh_train_args, tokenizer)],
@@ -119,7 +123,7 @@ def main():
                 model, type(model))
 
     trainer.train()
-    model.save_pretrained("llama-7b-coh-lora")
+    model.save_pretrained(f"{coh_train_args.output_dir}/llama-7b-coh-lora")
     wandb.finish()
 
 
