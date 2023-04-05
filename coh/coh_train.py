@@ -96,7 +96,7 @@ def main():
     if coh_train_args.evaluation_strategy != 'no':
         data_args_dict['split'] = 'validation'
         eval_cfg = CoHDataset.get_default_config(data_args_dict)
-        eval_dataset = CoHDataset(eval_cfg, tokenizer)
+        eval_dataset = CoHDataset(eval_cfg, tokenizer, webgpt_data)
     else:
         eval_dataset = None
         coh_train_args.eval_steps = None
