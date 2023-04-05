@@ -5,7 +5,7 @@ WORLD_SIZE=$N_GPU CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node $N_GPU --m
     -m coh.coh_train \
     --model_name 'google/flan-ul2' \
     --wandb_project_name CoH \
-    --wandb_run_name 'flan-ul2-seq512-bs128' \
+    --wandb_run_name 'CoH-flan-ul2-int8-lora-seq512-bs128' \
     --hf_weights "" \
     --learning_rate 2e-5 \
     --warmup_steps 1000 \

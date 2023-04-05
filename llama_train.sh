@@ -7,7 +7,7 @@ WORLD_SIZE=$N_GPU CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node $N_GPU --m
     --model_name $LLAMA_PATH/llama-7b \
     --tokenizer_name $LLAMA_PATH/tokenizer \
     --wandb_project_name CoH \
-    --wandb_run_name 'LLaMA-7B-seq512-bs128' \
+    --wandb_run_name 'CoH-LLaMA-7B-int8-lora-seq512-bs128' \
     --hf_weights "" \
     --learning_rate 2e-5 \
     --warmup_steps 1000 \
