@@ -18,7 +18,7 @@ WORLD_SIZE=$N_GPU CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node $N_GPU --m
     --save_strategy 'steps' \
     --save_steps 1000 \
     --save_total_limit 3 \
-    --load_best_model_at_end False \
+    --load_best_model_at_end True \
     --pt_loss_weight 0.75 \
     --seq_length 512 \
     --per_device_train_batch_size 2 \

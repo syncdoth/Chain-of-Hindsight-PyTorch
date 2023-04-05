@@ -123,6 +123,7 @@ def main():
 
     trainer.train()
     model.save_pretrained(f"{coh_train_args.output_dir}/{args.wandb_run_name}")
+    trainer.evaluate(test_dataset, metric_key_prefix="test")
     wandb.finish()
 
 
