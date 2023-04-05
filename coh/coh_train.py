@@ -7,7 +7,7 @@ from transformers.hf_argparser import HfArgumentParser
 import torch
 
 from coh.data import CoHDataset, CoHDataArgs, CoHDataCollator
-from coh.trainer import CoHTrainArgs, CoHTrainer, EvalCallback, compute_metrics
+from coh.trainer import CoHTrainArgs, CoHTrainer, compute_metrics
 
 
 @dataclass
@@ -114,7 +114,6 @@ def main():
         eval_dataset=eval_dataset,
         data_collator=CoHDataCollator(),
         compute_metrics=compute_metrics,
-        callbacks=[EvalCallback(test_dataset, wandb, coh_train_args, tokenizer)],
     )
     if args.use_lora:
         old_state_dict = model.state_dict
@@ -123,7 +122,7 @@ def main():
                 model, type(model))
 
     trainer.train()
-    model.save_pretrained(f"{coh_train_args.output_dir}/llama-7b-coh-lora")
+    model.save_pretrained(f"{coh_train_args.output_dir}/{args.wandb_run_name}")
     wandb.finish()
 
 
