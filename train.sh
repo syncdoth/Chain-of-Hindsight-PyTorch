@@ -1,10 +1,11 @@
 ids=$1
+N_GPU=$2
 
-WORLD_SIZE=2 CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node 2 --master_port 9808 \
+WORLD_SIZE=$N_GPU CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node $N_GPU --master_port 9808 \
     -m coh.coh_train \
-    --model_name 'EleutherAI/gpt-j-6B' \
+    --model_name 'google/flan-ul2' \
     --wandb_project_name CoH \
-    --wandb_run_name 'CoH-GPT-J-6B' \
+    --wandb_run_name 'flan-ul2-seq512-bs128' \
     --hf_weights "" \
     --learning_rate 2e-5 \
     --warmup_steps 1000 \
@@ -20,7 +21,7 @@ WORLD_SIZE=2 CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node 2 --master_port
     --load_best_model_at_end False \
     --pt_loss_weight 0.75 \
     --seq_length 512 \
-    --per_device_train_batch_size 4 \
-    --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 16 \
+    --per_device_train_batch_size 2 \
+    --per_device_eval_batch_size 2 \
+    --gradient_accumulation_steps 32 \
     --use_lora --fp16 --train_8bit

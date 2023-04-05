@@ -1,12 +1,13 @@
 ids=$1
-LLAMA_PATH=$2
+N_GPU=$2
+LLAMA_PATH=$3
 
-WORLD_SIZE=2 CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node 2 --master_port 9808 \
+WORLD_SIZE=$N_GPU CUDA_VISIBLE_DEVICES=$ids torchrun --nproc_per_node $N_GPU --master_port 9808 \
     -m coh.coh_train \
     --model_name $LLAMA_PATH/llama-7b \
     --tokenizer_name $LLAMA_PATH/tokenizer \
     --wandb_project_name CoH \
-    --wandb_run_name 'CoH-LLaMA-7B' \
+    --wandb_run_name 'LLaMA-7B-seq512-bs128' \
     --hf_weights "" \
     --learning_rate 2e-5 \
     --warmup_steps 1000 \
